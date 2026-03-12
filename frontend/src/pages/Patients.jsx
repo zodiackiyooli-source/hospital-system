@@ -1,211 +1,514 @@
-import React, { useState } from 'react';
-import { Save, UserPlus, MessageSquare, Shield, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+
+const API_BASE = "/api";
+
+// Helper: safely parse JSON and if it fails, return raw text as message
+const safeJson = async (res) => {
+  const text = await res.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Haddii server-ku soo celiyo qoraal (HTML ama text), ku soo celi sida fariin
+    return { message: text };
+  }
+};
 
 const Patients = () => {
+  const [patients, setPatients] = useState([]);
 
-    const [patients, setPatients] = useState([
-        {
-            id: "#PT-1092",
-            name: "Maxamed Cali Xasan",
-            blood: "O+",
-            worker: "Ahmed (Nurse)",
-            time: "Today, 9:20 AM"
-        },
-        {
-            id: "#PT-1093",
-            name: "Fartuun Cabdi",
-            blood: "A-",
-            worker: "Xasan (Reception)",
-            time: "Today, 10:15 AM"
+  const [showForm, setShowForm] = useState(false);
+  const [viewPatient, setViewPatient] = useState(null);
+  const [editPatient, setEditPatient] = useState(null);
+
+  const [search, setSearch] = useState("");
+
+  const patientsPerPage = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    age: "",
+    phone: "",
+    status: "Active",
+    result: "",
+  });
+
+  // STATE FOR NOTIFICATION
+  const [notification, setNotification] = useState(null);
+
+  /* LOAD PATIENTS FROM BACKEND (MongoDB) */
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/patients`);
+        const data = await safeJson(res);
+
+        if (!res.ok) {
+          throw new Error((data && data.message) || "Failed to load patients");
         }
-    ]);
 
-    const [formData, setFormData] = useState({
-        name: "",
-        phone: "",
-        age: "",
-        blood: "O+",
-        address: ""
+        const mapped = (data || []).map((p) => ({
+          id: p.patient_id,
+          dbId: p._id,
+          name: p.full_name,
+          age: p.age,
+          phone: p.phone,
+          status: p.history || "Active",
+          result: p.medical_record || "",
+        }));
+
+        setPatients(mapped);
+      } catch (err) {
+        console.error("Fetch patients error:", err);
+      }
+    };
+
+    fetchPatients();
+  }, []);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  /* SHOW NOTIFICATION */
+  const showNotification = (title, message, actionText, action) => {
+    setNotification({ title, message, actionText, action });
+  };
+
+  /* SAVE PATIENT (to MongoDB via backend) */
+  const savePatient = async (e) => {
+    e.preventDefault();
+
+    if (!formData.name || !formData.age || !formData.phone) {
+      showNotification(
+        "Action Required",
+        "Please fill all required fields",
+        "OK",
+        () => setNotification(null)
+      );
+      return;
+    }
+
+    const payload = {
+      full_name: formData.name,
+      age: formData.age,
+      phone: formData.phone,
+      status: formData.status,
+      medical_record: formData.result,
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/patients`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await safeJson(res);
+
+      if (!res.ok) {
+        throw new Error((data && data.message) || "Failed to save patient");
+      }
+
+      const newPatient = {
+        id: data && data.patient_id,
+        dbId: data && data._id,
+        name: data && data.full_name,
+        age: data && data.age,
+        phone: data && data.phone,
+        status: (data && data.history) || "Active",
+        result: (data && data.medical_record) || "",
+      };
+
+      setPatients([newPatient, ...patients]);
+    } catch (err) {
+      console.error("Save patient error:", err);
+      showNotification(
+        "Server Error",
+        err.message || "Failed to save patient",
+        "OK",
+        () => setNotification(null)
+      );
+      return;
+    }
+
+    setFormData({
+      name: "",
+      age: "",
+      phone: "",
+      status: "Active",
+      result: "",
     });
 
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
+    setShowForm(false);
+  };
+
+  /* DELETE (MongoDB + local state) */
+  const deletePatient = async (id) => {
+    const target = patients.find((p) => p.id === id);
+
+    if (!target) return;
+
+    if (target.dbId) {
+      try {
+        const res = await fetch(`${API_BASE}/patients/${target.dbId}`, {
+          method: "DELETE",
         });
-    };
+        const data = await safeJson(res);
+        if (!res.ok) {
+          throw new Error((data && data.message) || "Failed to delete patient");
+        }
+      } catch (err) {
+        console.error("Delete patient error:", err);
+        showNotification(
+          "Server Error",
+          err.message || "Failed to delete patient",
+          "OK",
+          () => setNotification(null)
+        );
+        return;
+      }
+    }
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    setPatients(patients.filter((p) => p.id !== id));
+  };
 
-        if (!formData.name || !formData.phone) return;
+  /* UPDATE (MongoDB + local state) */
+  const updatePatient = async (e) => {
+    e.preventDefault();
 
-        const newPatient = {
-            id: `#PT-${Math.floor(1000 + Math.random() * 9000)}`,
-            name: formData.name,
-            blood: formData.blood,
-            worker: "Admin (You)",
-            time: "Just Now"
-        };
+    if (!editPatient.name || !editPatient.age || !editPatient.phone) {
+      showNotification(
+        "Action Required",
+        "Please fill all required fields",
+        "OK",
+        () => setNotification(null)
+      );
+      return;
+    }
 
-        setPatients([newPatient, ...patients]);
+    if (editPatient.dbId) {
+      const payload = {
+        full_name: editPatient.name,
+        age: editPatient.age,
+        phone: editPatient.phone,
+        status: editPatient.status,
+        medical_record: editPatient.result,
+      };
 
-        setFormData({
-            name: "",
-            phone: "",
-            age: "",
-            blood: "O+",
-            address: ""
+      try {
+        const res = await fetch(`${API_BASE}/patients/${editPatient.dbId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         });
-    };
+        const data = await safeJson(res);
+        if (!res.ok) {
+          throw new Error((data && data.message) || "Failed to update patient");
+        }
+      } catch (err) {
+        console.error("Update patient error:", err);
+        showNotification(
+          "Server Error",
+          err.message || "Failed to update patient",
+          "OK",
+          () => setNotification(null)
+        );
+        return;
+      }
+    }
 
-    return (
-        <div className="space-y-6 max-w-[1200px] pb-10 animate-in fade-in duration-500">
-            <div className="mb-2">
-                <h1 className="text-2xl lg:text-[28px] font-black text-[#1e293b] tracking-tight uppercase">PATIENT MANAGEMENT</h1>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Form */}
-                <div className="lg:col-span-1 bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 overflow-hidden h-fit">
-                    <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4 flex items-center gap-2">
-                        <UserPlus size={18} className="text-blue-600" />
-                        <h3 className="text-[#1e293b] font-extrabold uppercase tracking-wide text-sm">Add New Patient</h3>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                        <div>
-                            <label className="block text-[12px] font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Full Name</label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formData.name}
-                                onChange={handleChange}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium transition-all"
-                                placeholder="Patient Name"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-[12px] font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Phone Number</label>
-                            <input
-                                type="text"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium transition-all"
-                                placeholder="+252..."
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-[12px] font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Age</label>
-                                <input
-                                    type="number"
-                                    name="age"
-                                    value={formData.age}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium transition-all"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-[12px] font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Blood Group</label>
-                                <select
-                                    name="blood"
-                                    value={formData.blood}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium transition-all"
-                                >
-                                    <option>O+</option>
-                                    <option>A+</option>
-                                    <option>B+</option>
-                                    <option>AB+</option>
-                                    <option>O-</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-[12px] font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Address</label>
-                            <textarea
-                                rows="2"
-                                name="address"
-                                value={formData.address}
-                                onChange={handleChange}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm font-medium transition-all"
-                                placeholder="Location..."
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            className="w-full bg-[#2563eb] text-white py-3 rounded-lg font-bold text-sm shadow-md hover:bg-blue-700 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
-                        >
-                            <Save size={16} /> Save Patient
-                        </button>
-                    </form>
-                </div>
-
-                {/* Table */}
-                <div className="lg:col-span-2 bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 overflow-hidden">
-                    <div className="border-b border-slate-100 bg-blue-600 px-6 py-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-white">
-                            <Shield size={18} />
-                            <h3 className="font-extrabold uppercase tracking-wide text-sm">Admin Control: Patient Records</h3>
-                        </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-slate-50 text-slate-500 text-[11px] font-bold uppercase tracking-widest border-b border-slate-200">
-                                <tr>
-                                    <th className="py-4 px-6 border-r border-slate-100">Patient Details</th>
-                                    <th className="py-4 px-6 border-r border-slate-100">Registered By (Worker)</th>
-                                    <th className="py-4 px-6 text-center">Admin Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {patients.map((patient, index) => (
-                                    <tr key={index} className="hover:bg-slate-50">
-                                        <td className="py-4 px-6 border-r border-slate-100">
-                                            <p className="font-bold text-slate-800 text-sm">{patient.name}</p>
-                                            <p className="text-[11px] text-slate-400 font-bold mt-0.5">
-                                                ID: {patient.id} • {patient.blood}
-                                            </p>
-                                        </td>
-                                        <td className="py-4 px-6 border-r border-slate-100">
-                                            <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-[11px] font-black uppercase tracking-wider">
-                                                {patient.worker}
-                                            </span>
-                                            <p className="text-[10px] text-slate-400 mt-1 font-bold">
-                                                {patient.time}
-                                            </p>
-                                        </td>
-                                        <td className="py-4 px-6 text-center">
-                                            <button className="bg-[#1e293b] text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-2 mx-auto shadow-sm">
-                                                <MessageSquare size={14} className="text-blue-400" /> Send Message
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div className="bg-slate-50 p-4 border-t border-slate-100">
-                        <div className="flex items-center gap-2 text-slate-500">
-                            <CheckCircle size={14} className="text-emerald-500" />
-                            <p className="text-[11px] font-bold uppercase tracking-wider">
-                                Marka aad form-ka buuxiso, qofka si toos ah ayuu table-ka uga soo muuqanayaa.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    setPatients(
+      patients.map((p) => (p.id === editPatient.id ? editPatient : p))
     );
+
+    setEditPatient(null);
+  };
+
+  /* RESULT SHORT */
+  const shortText = (text, max = 35) => {
+    if (!text) return "";
+    return text.length > max ? text.substring(0, max) + "..." : text;
+  };
+
+  /* SEARCH */
+  const filteredPatients = patients.filter(
+    (p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.phone.includes(search) ||
+      p.id.toLowerCase().includes(search.toLowerCase())
+  );
+
+  /* PAGINATION */
+  const indexOfLast = currentPage * patientsPerPage;
+  const indexOfFirst = indexOfLast - patientsPerPage;
+  const currentPatients = filteredPatients.slice(indexOfFirst, indexOfLast);
+
+  const totalPages = Math.ceil(filteredPatients.length / patientsPerPage);
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Patients</h1>
+        <button
+          onClick={() => setShowForm(true)}
+          className="bg-blue-600 text-white px-5 py-2 rounded-lg"
+        >
+          + Add Patient
+        </button>
+      </div>
+
+      {/* SEARCH */}
+      <input
+        type="text"
+        placeholder="🔎 Search by name, phone, or patient ID..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full border p-3 rounded-lg"
+      />
+
+      {/* TABLE */}
+      <div className="bg-white shadow rounded-xl overflow-hidden">
+        <table className="w-full text-center">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-4">Patient ID</th>
+              <th>Name</th>
+              <th>Age</th>
+              <th>Phone</th>
+              <th>Result</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentPatients.map((p) => (
+              <tr key={p.id} className="border-t">
+                <td className="p-4 font-semibold text-blue-600">{p.id}</td>
+                <td>{p.name}</td>
+                <td>{p.age}</td>
+                <td>{p.phone}</td>
+                <td>{shortText(p.result)}</td>
+                <td>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold
+                    ${p.status === "Active" && "bg-green-100 text-green-700"}
+                    ${p.status === "In Treatment" && "bg-yellow-100 text-yellow-700"}
+                    ${p.status === "Discharged" && "bg-red-100 text-red-600"}`}
+                  >
+                    {p.status}
+                  </span>
+                </td>
+                <td className="space-x-3">
+                  <button
+                    onClick={() => setViewPatient(p)}
+                    className="text-blue-600"
+                  >
+                    View
+                  </button>
+                  <button
+                    onClick={() => setEditPatient(p)}
+                    className="text-green-600"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deletePatient(p.id)}
+                    className="text-red-600"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* PAGINATION */}
+      <div className="flex gap-2 justify-center">
+        {[...Array(totalPages)].map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrentPage(i + 1)}
+            className={`px-3 py-1 rounded ${
+              currentPage === i + 1 ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+
+      {/* ADD PATIENT */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+          <form
+            onSubmit={savePatient}
+            className="bg-white p-6 rounded-xl w-96 space-y-4"
+          >
+            <h2 className="text-xl font-bold">Add Patient</h2>
+            <input
+              name="name"
+              placeholder="Full Name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+            <input
+              name="age"
+              type="number"
+              placeholder="Age"
+              value={formData.age}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+            <input
+              name="phone"
+              placeholder="Phone"
+              value={formData.phone}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            >
+              <option>Active</option>
+              <option>In Treatment</option>
+              <option>Discharged</option>
+            </select>
+            <textarea
+              name="result"
+              placeholder="Medical Result"
+              value={formData.result}
+              onChange={handleChange}
+              className="w-full border p-2 rounded"
+            />
+            <button className="bg-blue-600 text-white w-full py-2 rounded">
+              Save Patient
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* VIEW */}
+      {viewPatient && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-xl w-[450px] space-y-3">
+            <h2 className="text-xl font-bold">Patient Information</h2>
+            <p>
+              <b>ID:</b> {viewPatient.id}
+            </p>
+            <p>
+              <b>Name:</b> {viewPatient.name}
+            </p>
+            <p>
+              <b>Age:</b> {viewPatient.age}
+            </p>
+            <p>
+              <b>Phone:</b> {viewPatient.phone}
+            </p>
+            <p>
+              <b>Status:</b> {viewPatient.status}
+            </p>
+            <div>
+              <b>Medical Result:</b>
+              <p className="mt-1 text-gray-600 whitespace-pre-line">
+                {viewPatient.result}
+              </p>
+            </div>
+            <button
+              onClick={() => setViewPatient(null)}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT */}
+      {editPatient && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+          <form
+            onSubmit={updatePatient}
+            className="bg-white p-6 rounded-xl w-96 space-y-4"
+          >
+            <h2 className="text-xl font-bold">Edit Patient</h2>
+            <input
+              value={editPatient.name}
+              onChange={(e) =>
+                setEditPatient({ ...editPatient, name: e.target.value })
+              }
+              className="w-full border p-2 rounded"
+            />
+            <input
+              type="number"
+              value={editPatient.age}
+              onChange={(e) =>
+                setEditPatient({ ...editPatient, age: e.target.value })
+              }
+              className="w-full border p-2 rounded"
+            />
+            <input
+              value={editPatient.phone}
+              onChange={(e) =>
+                setEditPatient({ ...editPatient, phone: e.target.value })
+              }
+              className="w-full border p-2 rounded"
+            />
+            <select
+              value={editPatient.status}
+              onChange={(e) =>
+                setEditPatient({ ...editPatient, status: e.target.value })
+              }
+              className="w-full border p-2 rounded"
+            >
+              <option>Active</option>
+              <option>In Treatment</option>
+              <option>Discharged</option>
+            </select>
+            <textarea
+              value={editPatient.result}
+              onChange={(e) =>
+                setEditPatient({ ...editPatient, result: e.target.value })
+              }
+              className="w-full border p-2 rounded"
+            />
+            <button className="bg-green-600 text-white w-full py-2 rounded">
+              Update Patient
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* NOTIFICATION MODAL */}
+      {notification && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl w-96 space-y-4 shadow-lg">
+            <h2 className="text-xl font-bold">{notification.title}</h2>
+            <p className="text-gray-700">{notification.message}</p>
+            <button
+              onClick={() => notification.action()}
+              className="bg-blue-600 text-white w-full py-2 rounded"
+            >
+              {notification.actionText}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default Patients;

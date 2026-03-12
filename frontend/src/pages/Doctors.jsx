@@ -1,65 +1,187 @@
-import React from 'react';
-import { Save, Lock, AlertTriangle, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect } from "react";
 
 const Doctors = () => {
-    return (
-        <div className="space-y-6 max-w-4xl mx-auto pb-10">
-            <div className="mb-2">
-                <h1 className="text-2xl lg:text-[28px] font-black text-[#1e293b] tracking-tight uppercase">DOCTORS MANAGEMENT</h1>
-            </div>
 
-            <div className="bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 flex flex-col overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-bl-[100px] flex justify-end p-4 pointer-events-none">
-                    <ShieldAlert size={48} className="text-red-200" />
-                </div>
+const [doctors,setDoctors] = useState([]);
+const [showModal,setShowModal] = useState(false);
 
-                <div className="border-b border-slate-100 bg-red-50/50 px-8 py-5 flex items-center gap-3">
-                    <Lock size={16} className="text-red-600" />
-                    <h3 className="text-red-800 font-extrabold uppercase tracking-wide text-[15px]">ADMINISTRATOR ONLY: ADD DOCTOR</h3>
-                </div>
+const [form,setForm] = useState({
+name:"",
+specialization:"",
+phone:"",
+email:"",
+schedule:"",
+salary:""
+});
 
-                <div className="p-8 pb-4">
-                    <p className="text-slate-600 text-[13px] font-bold mb-6 max-w-xl">
-                        Page-kan wuxuu u xayiran yahay Admin-ka kaliya. Markii dhakhtar lagu darayo, dhammaan waxyaabaha hoose waa <span className="text-red-600">MUHIIM</span> waana in si faahfaahsan loosoo diiwaangeliyaa.
-                    </p>
-                </div>
+useEffect(()=>{
+fetchDoctors();
+},[]);
 
-                <div className="px-8 pb-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                        <div className="md:col-span-2">
-                            <label className="block text-[13px] font-bold text-slate-700 mb-2">Magaca Dhakhtarka</label>
-                            <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-sm transition-all shadow-sm" placeholder="Dr. Full Name" />
-                        </div>
-                        <div className="md:col-span-2">
-                            <label className="block text-[13px] font-bold text-slate-700 mb-2">Takhasus (Specialization)</label>
-                            <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-sm transition-all shadow-sm" placeholder="e.g. Cardiologist" />
-                        </div>
-                        <div>
-                            <label className="block text-[13px] font-bold text-slate-700 mb-2">Phone</label>
-                            <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-sm transition-all shadow-sm" placeholder="+252..." />
-                        </div>
-                        <div>
-                            <label className="block text-[13px] font-bold text-slate-700 mb-2">Email Address (Login)</label>
-                            <input type="email" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-sm transition-all shadow-sm font-bold text-blue-800" placeholder="doc@hospital.com" />
-                        </div>
-                        <div>
-                            <label className="block text-[13px] font-bold text-slate-700 mb-2">Jadwalka Shaqada (Schedule)</label>
-                            <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-sm transition-all shadow-sm" placeholder="Mon-Wed, 8:00AM - 2:00PM" />
-                        </div>
-                        <div>
-                            <label className="block text-[13px] font-bold text-slate-700 mb-2">Mushaarka (Salary)</label>
-                            <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none text-sm transition-all shadow-sm font-bold text-emerald-700" placeholder="e.g. $2,000" />
-                        </div>
-                    </div>
-                    <div className="mt-8 flex gap-4 pt-6 border-t border-slate-100">
-                        <button className="bg-red-600 text-white px-8 py-3 rounded shadow-sm hover:bg-red-700 text-[13px] font-bold flex items-center gap-2 transition-all uppercase tracking-wider">
-                            <Save size={16} /> ADD DOCTOR
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+const fetchDoctors = async ()=>{
+
+const res = await fetch("http://localhost:5000/api/doctors");
+const data = await res.json();
+
+setDoctors(data.doctors);
+
+};
+
+const handleChange = (e)=>{
+setForm({...form,[e.target.name]:e.target.value});
+};
+
+const addDoctor = async ()=>{
+
+const res = await fetch("http://localhost:5000/api/doctors",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify(form)
+});
+
+const data = await res.json();
+
+setDoctors([...doctors,data.doctor]);
+
+setShowModal(false);
+
+};
+
+return (
+
+<div className="p-10">
+
+<div className="flex justify-between mb-6">
+
+<h1 className="text-2xl font-bold">
+Doctors Management
+</h1>
+
+<button
+onClick={()=>setShowModal(true)}
+className="bg-blue-600 text-white px-6 py-2 rounded"
+>
+
++ Add Doctor
+
+</button>
+
+</div>
+
+
+<table className="w-full border">
+
+<thead className="bg-gray-100">
+
+<tr>
+<th className="p-3">Name</th>
+<th className="p-3">Specialization</th>
+<th className="p-3">Phone</th>
+<th className="p-3">Email</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{doctors.map((doc)=>(
+<tr key={doc._id}>
+
+<td className="p-3">{doc.name}</td>
+<td className="p-3">{doc.specialization}</td>
+<td className="p-3">{doc.phone}</td>
+<td className="p-3">{doc.email}</td>
+
+</tr>
+))}
+
+</tbody>
+
+</table>
+
+
+{showModal && (
+
+<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+
+<div className="bg-white p-8 rounded-lg w-[500px]">
+
+<h2 className="text-xl font-bold mb-4">
+Add Doctor
+</h2>
+
+<input
+name="name"
+onChange={handleChange}
+placeholder="Full Name"
+className="border p-2 w-full mb-3"
+/>
+
+<input
+name="specialization"
+onChange={handleChange}
+placeholder="Specialization"
+className="border p-2 w-full mb-3"
+/>
+
+<input
+name="phone"
+onChange={handleChange}
+placeholder="Phone"
+className="border p-2 w-full mb-3"
+/>
+
+<input
+name="email"
+onChange={handleChange}
+placeholder="Email"
+className="border p-2 w-full mb-3"
+/>
+
+<input
+name="schedule"
+onChange={handleChange}
+placeholder="Schedule"
+className="border p-2 w-full mb-3"
+/>
+
+<input
+name="salary"
+onChange={handleChange}
+placeholder="Salary"
+className="border p-2 w-full mb-3"
+/>
+
+<div className="flex gap-3 mt-4">
+
+<button
+onClick={()=>setShowModal(false)}
+className="px-4 py-2 bg-gray-300 rounded"
+>
+Cancel
+</button>
+
+<button
+onClick={addDoctor}
+className="px-4 py-2 bg-blue-600 text-white rounded"
+>
+Save Doctor
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+)}
+
+</div>
+
+);
+
 };
 
 export default Doctors;
