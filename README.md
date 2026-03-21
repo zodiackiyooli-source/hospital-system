@@ -63,4 +63,4 @@
 ---
 
 ## 📜 License
-Developed with ❤️ for Medical Professionals. All rights reserved. 2026.
+Developed with mohamed ali yusuf ❤️ for Medical Professionals. All rights reserved. 2026.
