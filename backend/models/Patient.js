@@ -13,24 +13,28 @@ const patientSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Auto-generate patient_id if missing (PT-0001, PT-0002, ...)
-patientSchema.pre('validate', async function (next) {
-    try {
-        if (this.patient_id) return next();
+patientSchema.pre('validate', async function () {
+    if (this.patient_id) return;
 
+    try {
         const last = await this.constructor
             .findOne({ patient_id: { $regex: /^PT-\d+$/ } })
             .sort({ patient_id: -1 })
             .select('patient_id')
             .lean();
 
+        console.log('Generating patient_id, Last patient found:', last);
+
         const lastNum = last?.patient_id ? Number(String(last.patient_id).split('-')[1]) : 0;
         const nextNum = Number.isFinite(lastNum) ? lastNum + 1 : 1;
         this.patient_id = `PT-${String(nextNum).padStart(4, '0')}`;
-
-        next();
+        
+        console.log('Generated patient_id:', this.patient_id);
     } catch (err) {
-        next(err);
+        console.error('Patient ID generation error:', err);
+        throw err;
     }
 });
+
 
 module.exports = mongoose.model('Patient', patientSchema);

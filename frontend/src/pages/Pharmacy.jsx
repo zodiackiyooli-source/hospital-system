@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Search, BarChart3, TrendingUp, AlertTriangle, Package, ClipboardList } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import {
   ResponsiveContainer,
   LineChart,
@@ -36,6 +37,7 @@ const getStatus = (medicine) => {
 };
 
 const MedicineManagementView = () => {
+  const { authFetch } = useAuth();
   const [medicines, setMedicines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -61,12 +63,24 @@ const MedicineManagementView = () => {
     try {
       setLoading(true);
       setError('');
-      const res = await fetch(`${API_BASE}/medicines`);
-      const data = await res.json();
+      const res = await authFetch(`/medicines`);
+      const resText = await res.text();
+      let data;
+      try {
+        data = resText ? JSON.parse(resText) : {};
+      } catch (e) {
+        throw new Error("Jawaabta server-ka ma xuma (Invalid JSON)");
+      }
+
       if (!res.ok) {
         throw new Error(data.message || 'Failed to load medicines');
       }
-      setMedicines(data);
+      // handle pagination object
+      if (data && data.data && data.data.data) {
+        setMedicines(data.data.data);
+      } else {
+        setMedicines(data.data || data || []);
+      }
     } catch (err) {
       console.error('Load medicines error:', err);
       setError(err.message || 'Server error');
@@ -121,16 +135,22 @@ const MedicineManagementView = () => {
 
     try {
       setLoading(true);
-      const url = editingId ? `${API_BASE}/medicines/${editingId}` : `${API_BASE}/medicines`;
+      const url = editingId ? `/medicines/${editingId}` : `/medicines`;
       const method = editingId ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const resText = await res.text();
+      let data;
+      try {
+        data = resText ? JSON.parse(resText) : {};
+      } catch (e) {
+        throw new Error("Server-ka wuxuu soo celiyey jawaab khaldan ama madhan.");
+      }
+
       if (!res.ok) {
         throw new Error(data.message || 'Failed to save medicine');
       }
@@ -163,8 +183,17 @@ const MedicineManagementView = () => {
     if (!window.confirm('Medicine-kan ma hubtaa inaad tirtirto?')) return;
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/medicines/${id}`, { method: 'DELETE' });
-      const data = await res.json();
+      const res = await authFetch(`/medicines/${id}`, { method: 'DELETE' });
+      const resText = await res.text();
+      let data;
+      try {
+        data = resText ? JSON.parse(resText) : {};
+      } catch (e) {
+        // Delete sometimes returns 204 or empty, which is fine if res.ok
+        if (!res.ok) throw new Error("Server error during delete");
+        data = { success: true };
+      }
+
       if (!res.ok) {
         throw new Error(data.message || 'Failed to delete medicine');
       }
@@ -298,9 +327,8 @@ const MedicineManagementView = () => {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`w-9 h-9 rounded-lg text-sm font-semibold ${
-                    isActive ? 'bg-blue-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
+                  className={`w-9 h-9 rounded-lg text-sm font-semibold ${isActive ? 'bg-blue-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
                 >
                   {page}
                 </button>
@@ -426,6 +454,7 @@ const exportCsv = (filename, rows) => {
 };
 
 const ReportsView = () => {
+  const { authFetch } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
@@ -448,7 +477,7 @@ const ReportsView = () => {
         if (from) params.set('from', from);
         if (to) params.set('to', to);
       }
-      const res = await fetch(`${API_BASE}/pharmacy/reports?${params.toString()}`);
+      const res = await authFetch(`/pharmacy/reports?${params.toString()}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Failed to load reports');
       setData(json);
@@ -462,9 +491,15 @@ const ReportsView = () => {
 
   const loadMedicines = async () => {
     try {
-      const res = await fetch(`${API_BASE}/medicines`);
+      const res = await authFetch(`/medicines`);
       const json = await res.json();
-      if (res.ok) setMedicines(json);
+      if (res.ok) {
+        if (json && json.data && json.data.data) {
+          setMedicines(json.data.data);
+        } else {
+          setMedicines(json.data || json || []);
+        }
+      }
     } catch (e) {
       console.error('Load medicines for sale error:', e);
     }
@@ -483,9 +518,8 @@ const ReportsView = () => {
     e.preventDefault();
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/sales`, {
+      const res = await authFetch(`/sales`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           medicine_id: saleForm.medicine_id,
           quantity: Number(saleForm.quantity),
@@ -587,7 +621,7 @@ const ReportsView = () => {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">Monthly sales</h4>
           <div className="mt-4 h-56">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="99%" minWidth={1} height="100%">
               <BarChart data={monthSales}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
@@ -602,7 +636,7 @@ const ReportsView = () => {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">Most used medicines</h4>
           <div className="mt-4 h-56">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="99%" minWidth={1} height="100%">
               <BarChart data={mostUsedMedicines} layout="vertical" margin={{ left: 18 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" tick={{ fontSize: 11 }} />
@@ -617,7 +651,7 @@ const ReportsView = () => {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">Category usage</h4>
           <div className="mt-4 h-56">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="99%" minWidth={1} height="100%">
               <PieChart>
                 <Pie data={categoryUsage} dataKey="qty" nameKey="category" innerRadius={48} outerRadius={80}>
                   {categoryUsage.map((_, i) => (
@@ -771,6 +805,7 @@ const ReportsView = () => {
 };
 
 const DashboardView = () => {
+  const { authFetch } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [data, setData] = useState(null);
@@ -779,7 +814,7 @@ const DashboardView = () => {
     try {
       setLoading(true);
       setError('');
-      const res = await fetch(`${API_BASE}/pharmacy/dashboard`);
+      const res = await authFetch(`/pharmacy/dashboard`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || 'Failed to load dashboard');
       setData(json);
@@ -1018,11 +1053,10 @@ const Pharmacy = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`whitespace-nowrap px-5 py-2.5 rounded text-[14px] transition-all duration-200 ${
-              activeTab === tab.id
-                ? 'bg-[#2563eb] text-white font-bold shadow-md'
-                : 'text-slate-500 font-semibold hover:text-slate-800 hover:bg-slate-200/50'
-            }`}
+            className={`whitespace-nowrap px-5 py-2.5 rounded text-[14px] transition-all duration-200 ${activeTab === tab.id
+              ? 'bg-[#2563eb] text-white font-bold shadow-md'
+              : 'text-slate-500 font-semibold hover:text-slate-800 hover:bg-slate-200/50'
+              }`}
           >
             {tab.name}
           </button>

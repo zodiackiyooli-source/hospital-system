@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
-import { DollarSign, CheckCircle, Package, TrendingUp, Calendar, FileText, Printer, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { DollarSign, CheckCircle, Package, TrendingUp, Calendar, FileText, Printer, ChevronRight, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Reports = () => {
+    const { authFetch } = useAuth();
     const [activeTab, setActiveTab] = useState('summary');
+    const [reportData, setReportData] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     const reportTypes = [
         { id: 'summary', name: 'Reports Summary', icon: <FileText size={18} /> },
@@ -11,6 +15,24 @@ const Reports = () => {
         { id: 'medicine', name: 'Medicine Report', icon: <Package size={18} /> },
         { id: 'profit', name: 'Profit Report', icon: <CheckCircle size={18} /> }
     ];
+
+    useEffect(() => {
+        const fetchReports = async () => {
+            try {
+                setLoading(true);
+                const res = await authFetch('/reports/summary');
+                const json = await res.json();
+                if (res.ok) {
+                    setReportData(json.data);
+                }
+            } catch (err) {
+                console.error("Report Fetch Error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchReports();
+    }, [authFetch]);
 
     return (
         <div className="space-y-6 max-w-[1200px] pb-10 animate-in fade-in duration-500">
@@ -35,7 +57,12 @@ const Reports = () => {
             </div>
 
             <div className="bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 overflow-hidden min-h-[500px]">
-                {activeTab === 'summary' && (
+                {loading ? (
+                    <div className="flex items-center justify-center min-h-[500px] flex-col gap-4 text-slate-400">
+                        <Loader2 size={40} className="animate-spin text-blue-500" />
+                        <span className="font-bold tracking-widest uppercase text-xs">Generating Reports...</span>
+                    </div>
+                ) : activeTab === 'summary' ? (
                     <div className="p-8">
                         <h3 className="text-[#1e293b] font-black uppercase tracking-wider text-sm mb-6 flex items-center gap-2">
                             <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
@@ -43,10 +70,10 @@ const Reports = () => {
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {[
-                                { title: 'Daily Sales', desc: 'Arag xaddiga iibka ee maanta kaliya.', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                                { title: 'Monthly Sales', desc: 'Xogta iibka ee bishii la soo dhaafay ama bilaha kale.', color: 'text-blue-600', bg: 'bg-blue-50' },
-                                { title: 'Medicine Report', desc: 'Daawooyinka baxay, kuwa hadhay iyo stock-ga.', color: 'text-amber-600', bg: 'bg-amber-50' },
-                                { title: 'Profit Report', desc: 'Xisaabta sofida ah (Hribka) ee isbitaalka ama farmashiyaha.', color: 'text-purple-600', bg: 'bg-purple-50' }
+                                { title: 'Total Revenue', desc: `Total Generated: $${reportData?.summary?.totalRevenue || 0}`, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                                { title: 'Pharma Revenue', desc: `Pharmacy Only: $${reportData?.summary?.pharmaRevenue || 0}`, color: 'text-blue-600', bg: 'bg-blue-50' },
+                                { title: 'Lab Revenue', desc: `Laboratory Only: $${reportData?.summary?.labRevenue || 0}`, color: 'text-amber-600', bg: 'bg-amber-50' },
+                                { title: 'Transactions', desc: `Total Records: ${reportData?.transactions?.length || 0}`, color: 'text-purple-600', bg: 'bg-purple-50' }
                             ].map((item, idx) => (
                                 <div key={idx} className={`${item.bg} p-6 rounded-2xl border border-white/50 hover:-translate-y-1 transition-all cursor-pointer group`}>
                                     <h4 className={`${item.color} font-black text-xs uppercase tracking-widest mb-2`}>{item.title}</h4>
@@ -73,9 +100,7 @@ const Reports = () => {
                             </div>
                         </div>
                     </div>
-                )}
-
-                {activeTab !== 'summary' && (
+                ) : (
                     <div className="p-8 animate-in slide-in-from-left-4 duration-300">
                         <h3 className="text-[#1e293b] font-black uppercase tracking-wider text-sm mb-6 border-b border-slate-100 pb-4">
                             {reportTypes.find(r => r.id === activeTab).name} Data Table
@@ -84,7 +109,7 @@ const Reports = () => {
                             <div className="flex gap-4">
                                 <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-lg flex items-center gap-2">
                                     <Calendar size={16} className="text-slate-400" />
-                                    <span className="text-xs font-bold text-slate-600">Nov 01, 2023 - Nov 30, 2023</span>
+                                    <span className="text-xs font-bold text-slate-600">All Time Reports</span>
                                 </div>
                             </div>
                             <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-blue-700 shadow-sm transition-all">
@@ -103,25 +128,26 @@ const Reports = () => {
                                 </tr>
                             </thead>
                             <tbody className="text-sm font-bold text-slate-800">
-                                <tr className="border-b border-slate-100 hover:bg-slate-50">
-                                    <td className="py-4 px-6 border-r border-slate-100 text-slate-400 uppercase">REP-001</td>
-                                    <td className="py-4 px-6 border-r border-slate-100">Pharma Sales (Panadol Extra)</td>
-                                    <td className="py-4 px-6 border-r border-slate-100 text-blue-600">Pharmacy</td>
-                                    <td className="py-4 px-6 border-r border-slate-100 text-slate-500 font-medium italic">2023-11-15 10:20 AM</td>
-                                    <td className="py-4 px-6 text-right text-emerald-600 font-black">+ $450.00</td>
-                                </tr>
-                                <tr className="border-b border-slate-100 hover:bg-slate-50">
-                                    <td className="py-4 px-6 border-r border-slate-100 text-slate-400 uppercase">REP-002</td>
-                                    <td className="py-4 px-6 border-r border-slate-100">Laboratory Test (X-Ray)</td>
-                                    <td className="py-4 px-6 border-r border-slate-100 text-purple-600">Laboratory</td>
-                                    <td className="py-4 px-6 border-r border-slate-100 text-slate-500 font-medium italic">2023-11-15 11:45 AM</td>
-                                    <td className="py-4 px-6 text-right text-emerald-600 font-black">+ $1,200.00</td>
-                                </tr>
+                                {reportData?.transactions?.length > 0 ? (
+                                    reportData.transactions.map((tx, idx) => (
+                                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50">
+                                            <td className="py-4 px-6 border-r border-slate-100 text-slate-400 uppercase">{tx.id}</td>
+                                            <td className="py-4 px-6 border-r border-slate-100">{tx.description}</td>
+                                            <td className={`py-4 px-6 border-r border-slate-100 ${tx.category === 'Pharmacy' ? 'text-blue-600' : 'text-purple-600'}`}>{tx.category}</td>
+                                            <td className="py-4 px-6 border-r border-slate-100 text-slate-500 font-medium italic">{new Date(tx.date).toLocaleString('en-GB')}</td>
+                                            <td className="py-4 px-6 text-right text-emerald-600 font-black">+ ${tx.amount?.toFixed(2)}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="5" className="py-8 text-center text-slate-400 font-normal">No recent transactions found.</td>
+                                    </tr>
+                                )}
                             </tbody>
                             <tfoot className="bg-slate-50 font-black">
                                 <tr>
                                     <td colSpan="4" className="py-4 px-6 text-right border-r border-slate-200 uppercase tracking-widest text-[11px]">Total Selected Report</td>
-                                    <td className="py-4 px-6 text-right text-lg text-[#1e293b]">$ 1,650.00</td>
+                                    <td className="py-4 px-6 text-right text-lg text-[#1e293b]">$ {(reportData?.summary?.totalRevenue || 0).toFixed(2)}</td>
                                 </tr>
                             </tfoot>
                         </table>

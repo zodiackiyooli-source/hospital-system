@@ -1,0 +1,108 @@
+openapi: 3.0.0
+info:
+  title: Hospital Pharmacy System API
+  version: 1.0.0
+  description: Professional backend for hospital management with auth, CRUD, reports
+servers:
+  - url: http://localhost:5000/api
+    description: Development server
+
+paths:
+  /auth/register:
+    post:
+      summary: Register user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                role:
+                  type: string
+                  enum: [admin, worker, owner]
+      responses:
+        '201':
+          description: User created
+
+  /auth/login:
+    post:
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  /patients:
+    get:
+      summary: Get patients (paginated/search)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated patients
+    post:
+      summary: Create patient
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Patient'
+      responses:
+        '201':
+          description: Patient created
+
+components:
+  schemas:
+    Patient:
+      type: object
+      properties:
+        full_name:
+          type: string
+        age:
+          type: number
+        phone:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+

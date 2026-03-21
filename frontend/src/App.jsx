@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
@@ -8,12 +8,15 @@ import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import Doctors from './pages/Doctors';
 import Pharmacy from './pages/Pharmacy';
+
 import Laboratory from './pages/Laboratory';
 import Billing from './pages/Billing';
 import Staff from './pages/Staff';
 import Reports from './pages/Reports';
+import Debts from './pages/Debts';
+import Prescriptions from './pages/Prescriptions';
 
-// ─── Layout (no auth, always visible) ─────────────────────────────────────────
+// ─── Layout (Always visible) ─────────────────────────────────────────────
 const Layout = ({ children }) => (
   <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
     <Sidebar />
@@ -26,7 +29,6 @@ const Layout = ({ children }) => (
   </div>
 );
 
-// ─── App Root: routes directly to pages (login/register disabled) ─────────────
 function App() {
   return (
     <AuthProvider>
@@ -41,6 +43,8 @@ function App() {
           <Route path="/billing" element={<Layout><Billing /></Layout>} />
           <Route path="/staff" element={<Layout><Staff /></Layout>} />
           <Route path="/reports" element={<Layout><Reports /></Layout>} />
+          <Route path="/debts" element={<Layout><Debts /></Layout>} />
+          <Route path="/prescriptions" element={<Layout><Prescriptions /></Layout>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
