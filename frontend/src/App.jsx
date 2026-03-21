@@ -15,19 +15,33 @@ import Staff from './pages/Staff';
 import Reports from './pages/Reports';
 import Debts from './pages/Debts';
 import Prescriptions from './pages/Prescriptions';
+import MedicalRecords from './pages/MedicalRecords';
 
 // ─── Layout (Always visible) ─────────────────────────────────────────────
-const Layout = ({ children }) => (
-  <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
-    <Sidebar />
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50">
-      <Navbar />
-      <main className="flex-1 overflow-y-auto p-6 md:p-8 relative z-10 w-full h-full">
-        {children}
-      </main>
+const Layout = ({ children }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+
+  return (
+    <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+      {/* Overlay for mobile sidebar */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 min-w-0">
+        <Navbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 w-full h-full custom-scrollbar">
+          {children}
+        </main>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 function App() {
   return (
@@ -45,6 +59,7 @@ function App() {
           <Route path="/reports" element={<Layout><Reports /></Layout>} />
           <Route path="/debts" element={<Layout><Debts /></Layout>} />
           <Route path="/prescriptions" element={<Layout><Prescriptions /></Layout>} />
+          <Route path="/medical-records" element={<Layout><MedicalRecords /></Layout>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>

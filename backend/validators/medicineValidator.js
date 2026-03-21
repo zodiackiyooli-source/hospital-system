@@ -5,7 +5,7 @@ const medicineSchema = Joi.object({
   category: Joi.string().min(2).max(50).required(),
   price: Joi.number().min(0).required(),
   quantity: Joi.number().integer().min(0).required(),
-  expiry_date: Joi.date().min('now').iso().required(),
+  expiry_date: Joi.date().required(),
   supplier: Joi.string().min(2).max(100).required(),
   barcode: Joi.string().allow('')
 });

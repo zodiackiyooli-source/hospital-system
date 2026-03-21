@@ -1,5 +1,4 @@
-import React from 'react';
-import { Bell, Search, UserCircle, LogOut, Crown, Shield, Stethoscope } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, Crown, Shield, Stethoscope, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 // Role badge config
@@ -9,7 +8,7 @@ const ROLE_CONFIG = {
     Worker: { icon: Stethoscope, color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: 'Worker' },
 };
 
-const Navbar = () => {
+const Navbar = ({ onToggleSidebar }) => {
     const { user, logout } = useAuth();
     const role = ROLE_CONFIG[user?.role] || ROLE_CONFIG['Worker'];
     const RoleIcon = role.icon;
@@ -20,10 +19,19 @@ const Navbar = () => {
         : 'U';
 
     return (
-        <header className="bg-white border-b border-slate-200 h-[72px] px-6 flex items-center justify-between z-10 shrink-0">
+        <header className="bg-white border-b border-slate-200 h-[72px] px-4 md:px-6 flex items-center justify-between z-10 shrink-0">
+            {/* Menu Toggler (Mobile display only) */}
+            <button 
+                onClick={onToggleSidebar}
+                className="md:hidden p-2.5 mr-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors"
+                aria-label="Toggle menu"
+            >
+                <Menu size={22} strokeWidth={2.5} />
+            </button>
+
             {/* Search */}
-            <div className="flex items-center flex-1">
-                <div className="relative w-full max-w-xl">
+            <div className="flex items-center flex-1 min-w-0">
+                <div className="relative w-full max-w-xl hidden sm:block">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Search size={18} className="text-slate-400" />
                     </div>

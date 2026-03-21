@@ -101,7 +101,12 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen p-6 md:p-8 bg-[#f8fafc] space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="min-h-full bg-[#f8fafc] relative animate-in fade-in duration-500 pb-20">
+      {/* Subtle Background Flair */}
+      <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-blue-50/50 to-transparent pointer-events-none -z-10" />
+      <div className="absolute top-20 right-10 w-64 h-64 bg-indigo-100/30 rounded-full blur-3xl pointer-events-none -z-10" />
+      
+      <div className="space-y-10">
 
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -126,25 +131,25 @@ const Dashboard = () => {
       </div>
 
       {/* STAT CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {cards.map((card, i) => (
           <div
             key={i}
-            className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] p-5 hover:-translate-y-1 transition-transform duration-300"
+            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:-translate-y-1 transition-all duration-300"
           >
             <div className="flex justify-between items-start">
               <div className={`p-3 rounded-xl ${card.bg} ${card.border} border`}>
                 {card.icon}
               </div>
-              <span className={`text-xs font-bold px-2 py-1 bg-slate-50 rounded-lg ${card.trendColor}`}>
+              <span className={`text-[10px] font-black px-2 py-1 bg-slate-50 rounded-lg ${card.trendColor}`}>
                 {card.trend}
               </span>
             </div>
             <div className="mt-4">
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none">{card.title}</p>
+              <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight mt-1.5">
                 {card.value.toLocaleString()}
               </h2>
-              <p className="text-sm font-semibold text-slate-500 mt-1">{card.title}</p>
             </div>
           </div>
         ))}
@@ -166,7 +171,7 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <div className="h-[300px] w-full">
+          <div className="h-[300px] min-h-[300px] w-full">
             <ResponsiveContainer width="99%" minWidth={1} height="100%">
               <AreaChart data={expenseRevenue} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
@@ -335,6 +340,7 @@ const Dashboard = () => {
           
         </div>
 
+        </div>
       </div>
     </div>
   );

@@ -89,7 +89,7 @@ const Prescriptions = () => {
 
   return (
 
-  <div className="max-w-[1100px] mx-auto p-8 space-y-6">
+  <div className="max-w-[1200px] mx-auto p-4 md:p-8 space-y-6">
 
 
   {/* HEADER */}
@@ -112,7 +112,8 @@ const Prescriptions = () => {
 
   {/* TABLE */}
 
-  <table className="w-full border bg-white">
+  <div className="bg-white shadow rounded-xl overflow-hidden overflow-x-auto">
+    <table className="w-full border bg-white min-w-[700px] md:min-w-0">
 
     <thead className="bg-gray-100">
 
@@ -151,6 +152,7 @@ const Prescriptions = () => {
     </tbody>
 
   </table>
+  </div>
 
 
   {/* FORM */}
@@ -159,7 +161,7 @@ const Prescriptions = () => {
 
   <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
 
-    <div className="bg-white p-6 w-[750px] border">
+    <div className="bg-white p-4 md:p-8 w-full max-w-[800px] rounded-2xl shadow-2xl">
 
       <h1 className="text-center text-xl font-bold mb-4">
         Prescription

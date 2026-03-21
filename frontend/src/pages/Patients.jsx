@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Plus, Search, User, Phone, Calendar, Info, Edit, Trash2 } from "lucide-react";
 
 const API_BASE = "/api";
 
@@ -24,7 +25,7 @@ const Patients = () => {
 
   const [search, setSearch] = useState("");
 
-  const patientsPerPage = 5;
+  const patientsPerPage = 100;
   const [currentPage, setCurrentPage] = useState(1);
 
   const [formData, setFormData] = useState({
@@ -70,7 +71,7 @@ const Patients = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const res = await fetch(`${API_BASE}/patients`);
+        const res = await fetch(`${API_BASE}/patients?limit=100`);
         const data = await safeJson(res);
 
         if (!res.ok) {
@@ -405,29 +406,39 @@ const Patients = () => {
     <div className="max-w-7xl mx-auto space-y-6">
 
       {/* HEADER */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Patients</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 pb-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+             Patients
+          </h1>
+          <p className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-widest leading-none">Medical Database</p>
+        </div>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-5 py-2 rounded-lg"
+          className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
         >
-          + Add Patient
+          Add New Patient
         </button>
       </div>
 
       {/* SEARCH */}
-      <input
-        type="text"
-        placeholder="🔎 Search by name, phone, or patient ID..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full border p-3 rounded-lg"
-      />
+      <div className="relative group">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+          <Search size={18} strokeWidth={2.5} />
+        </div>
+        <input
+          type="text"
+          placeholder="SEARCH PATIENT BY NAME, PHONE, OR ID..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full bg-white border border-slate-200 p-4 pl-12 rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-bold text-xs tracking-widest placeholder:text-slate-300"
+        />
+      </div>
 
       {/* TABLE */}
-      <div className="bg-white shadow rounded-xl overflow-hidden">
-        <table className="w-full text-center">
-          <thead className="bg-gray-100">
+      <div className="bg-white shadow-xl rounded-2xl overflow-x-auto custom-scrollbar border border-slate-100 p-1">
+        <table className="w-full text-center border-collapse min-w-[1200px] md:min-w-full">
+          <thead className="bg-gray-100 italic">
             <tr>
               <th className="p-4">Patient ID</th>
               <th>Name</th>
@@ -504,19 +515,47 @@ const Patients = () => {
       </div>
 
       {/* PAGINATION */}
-      <div className="flex gap-2 justify-center">
-        {[...Array(totalPages)].map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setCurrentPage(i + 1)}
-            className={`px-3 py-1 rounded ${
-              currentPage === i + 1 ? "bg-blue-600 text-white" : "bg-gray-200"
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
-      </div>
+      {totalPages > 1 && (
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6 py-10 border-t border-slate-100 mt-6 px-4">
+          <div className="text-xs font-black text-slate-400 uppercase tracking-widest italic">
+            Showing {indexOfFirst + 1}-{Math.min(indexOfLast, filteredPatients.length)} of {filteredPatients.length} Patients
+          </div>
+
+          <div className="flex gap-2 items-center">
+            <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+                Prev
+            </button>
+
+            <div className="hidden sm:flex gap-1.5 overflow-x-auto max-w-[300px] px-2 custom-scrollbar">
+                {[...Array(totalPages)].map((_, i) => (
+                <button
+                    key={i}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`min-w-[36px] h-9 rounded-lg font-black text-[10px] transition-all duration-300 ${
+                    currentPage === i + 1 
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-100" 
+                        : "bg-white border border-slate-100 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
+                    }`}
+                >
+                    {i + 1}
+                </button>
+                ))}
+            </div>
+
+            <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+                Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ADD PATIENT */}
       {showForm && (
@@ -778,8 +817,8 @@ const Patients = () => {
 
       {/* PRESCRIPTION FORM MODAL (EXACT IMAGE MATCH & Z-INDEX FIX) */}
       {showRxForm && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[9999] p-4 overflow-y-auto pl-[260px]">
-          <div className="bg-white p-8 w-full max-w-[800px] rounded-xl shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[9999] p-4 overflow-y-auto">
+          <div className="bg-white p-4 md:p-8 w-full max-w-[900px] rounded-xl shadow-2xl animate-in zoom-in-95 duration-200">
             
             <h2 className="text-center text-2xl font-bold text-slate-800 mb-6">
               Prescription
@@ -884,22 +923,11 @@ const Patients = () => {
                       </td>
                       <td className="border-r border-slate-300 p-0 relative group text-left align-middle">
                         <input
-                          className="w-full h-full min-h-[44px] px-3 outline-none text-slate-800 bg-transparent text-left"
+                          className="w-full h-full min-h-[44px] px-3 outline-none text-slate-800 bg-transparent text-left font-bold"
                           value={med.name}
+                          placeholder="Medicine..."
                           onChange={(e) => changeRxMedicine(i, "name", e.target.value)}
                         />
-                         {/* QUICK SELECT */}
-                          <div className="absolute left-0 top-full mt-0 hidden group-focus-within:block bg-white border border-slate-300 shadow-xl w-full rounded z-[10000] p-1 max-h-48 overflow-y-auto text-left">
-                            {oralMedicines.map((m) => (
-                              <div
-                                key={m}
-                                onMouseDown={(e) => { e.preventDefault(); selectRxMedicine(i, m); }}
-                                className="p-2 px-3 hover:bg-slate-100 cursor-pointer text-sm text-slate-800"
-                              >
-                                {m}
-                              </div>
-                            ))}
-                          </div>
                       </td>
                       <td className="border-r border-slate-300 p-0 align-middle">
                         <input
@@ -951,13 +979,20 @@ const Patients = () => {
               </button>
 
               <button
-                onClick={() => {
-                  finalizePrescription();
-                  setTimeout(() => window.print(), 500);
-                }}
-                className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded font-medium transition-colors shadow-sm"
+                onClick={savePrescription}
+                className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded font-black uppercase text-xs tracking-widest transition-colors shadow-sm"
               >
                 Save Prescription
+              </button>
+
+              <button
+                onClick={() => {
+                  finalizePrescription();
+                  setTimeout(() => window.print(), 100);
+                }}
+                className="bg-slate-800 hover:bg-black text-white px-5 py-2 rounded font-black uppercase text-xs tracking-widest transition-colors shadow-sm"
+              >
+                Print
               </button>
 
               <button

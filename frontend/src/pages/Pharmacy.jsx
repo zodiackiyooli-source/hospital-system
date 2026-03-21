@@ -248,9 +248,9 @@ const MedicineManagementView = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden overflow-x-auto">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full text-left text-sm min-w-[700px] md:min-w-0">
               <thead className="bg-slate-100/70 text-[12px] font-semibold text-slate-600 border-b border-slate-200">
                 <tr>
                   <th className="py-3 px-5">Medicine</th>
@@ -616,8 +616,8 @@ const ReportsView = () => {
         </div>
       )}
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      {/* Charts (Reports View) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start px-2 md:px-0">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">Monthly sales</h4>
           <div className="mt-4 h-56">
@@ -668,7 +668,7 @@ const ReportsView = () => {
 
       {/* Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden overflow-x-auto">
           <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
             <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">Medicine sales report</h4>
             {loading && <span className="text-xs text-slate-400 font-semibold">Loading…</span>}
@@ -704,7 +704,7 @@ const ReportsView = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden overflow-x-auto">
           <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
             <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">Stock report</h4>
           </div>
@@ -862,7 +862,7 @@ const DashboardView = () => {
       )}
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Total medicines</span>
@@ -905,8 +905,8 @@ const DashboardView = () => {
         </div>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      {/* Charts (Dashboard View) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start px-2 md:px-0">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
           <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">Sales chart (this month)</h4>
           <div className="mt-4 h-56">
@@ -956,7 +956,7 @@ const DashboardView = () => {
       </div>
 
       {/* Alerts + Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start overflow-hidden">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
             <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">Alerts</h4>
@@ -1041,14 +1041,14 @@ const Pharmacy = () => {
   ];
 
   return (
-    <div className="space-y-6 max-w-[1200px] pb-10">
+    <div className="space-y-6 max-w-[1200px] pb-10 px-2 sm:px-4 md:px-6">
       <div className="mb-2">
         <h1 className="text-2xl lg:text-[28px] font-black text-[#1e293b] tracking-tight uppercase">
           PHARMACY SYSTEM
         </h1>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 overflow-x-auto scroller-hide bg-transparent mb-6">
+      <div className="flex flex-nowrap items-center gap-2 overflow-x-auto scroller-hide bg-transparent mb-6 pb-2 custom-scrollbar">
         {tabs.map(tab => (
           <button
             key={tab.id}
