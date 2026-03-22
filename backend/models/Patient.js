@@ -4,10 +4,17 @@ const patientSchema = new mongoose.Schema({
     patient_id: { type: String, required: true, unique: true },
     full_name: { type: String, required: true },
     gender: { type: String, required: true, enum: ['Male', 'Female', 'Other'] },
-    age: { type: Number, required: true },
+    age: {
+      value: { type: Number, required: true },
+      unit: { type: String, required: true, enum: ['Year', 'Month', 'Week', 'Day', 'Hour'] }
+    },
     phone: { type: String, required: true },
     address: { type: String, required: true },
     blood_group: { type: String, required: true },
+    illness_duration: {
+        value: { type: Number, default: 0 },
+        unit: { type: String, enum: ['Year', 'Month', 'Week', 'Day', 'Hour'], default: 'Day' }
+    },
     history: { type: String, default: '' },
     medical_record: { type: String, default: '' }
 }, { timestamps: true });

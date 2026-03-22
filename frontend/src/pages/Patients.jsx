@@ -30,13 +30,16 @@ const Patients = () => {
 
   const [formData, setFormData] = useState({
     name: "",
-    age: "",
+    ageValue: "",
+    ageUnit: "Year",
     phone: "",
     gender: "Male",
     address: "",
     blood_group: "O+",
     status: "Active",
     result: "",
+    durationValue: 0,
+    durationUnit: "Day",
   });
 
   // STATE FOR NOTIFICATION
@@ -92,11 +95,14 @@ const Patients = () => {
             id: p.patient_id,
             dbId: p._id,
             name: p.full_name,
-            age: p.age,
+            age: (typeof p.age === 'object' && p.age !== null) ? p.age : { value: p.age || 0, unit: 'Year' },
             gender: p.gender,
             phone: p.phone,
+            address: p.address,
+            blood_group: p.blood_group,
             status: p.history || "Active",
-            result: p.medical_record || "",
+            medical_record: p.medical_record || "",
+            duration: p.illness_duration || { value: 0, unit: "Day" },
             prescription: patientRx || null 
           };
         });
@@ -126,7 +132,7 @@ const Patients = () => {
   const savePatient = async (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.age || !formData.phone) {
+    if (!formData.name || !formData.ageValue || !formData.phone || !formData.address) {
       showNotification(
         "Action Required",
         "Please fill all required fields",
@@ -139,12 +145,19 @@ const Patients = () => {
     const payload = {
       full_name: formData.name,
       gender: formData.gender,
-      age: Number(formData.age),
+      age: {
+        value: Number(formData.ageValue),
+        unit: formData.ageUnit
+      },
       phone: formData.phone,
       address: formData.address,
       blood_group: formData.blood_group,
       history: formData.status,
       medical_record: formData.result,
+      illness_duration: {
+        value: Number(formData.durationValue),
+        unit: formData.durationUnit
+      }
     };
 
     try {
@@ -166,9 +179,13 @@ const Patients = () => {
         dbId: patientData && patientData._id,
         name: patientData && patientData.full_name,
         age: patientData && patientData.age,
+        gender: patientData && patientData.gender,
         phone: patientData && patientData.phone,
+        address: patientData && patientData.address,
+        blood_group: patientData && patientData.blood_group,
         status: (patientData && patientData.history) || "Active",
         result: (patientData && patientData.medical_record) || "",
+        duration: (patientData && patientData.illness_duration) || { value: 0, unit: "Day" },
       };
 
       setPatients([newPatient, ...patients]);
@@ -185,10 +202,13 @@ const Patients = () => {
 
     setFormData({
       name: "",
-      age: "",
+      ageValue: "",
+      ageUnit: "Year",
       phone: "",
       status: "Active",
       result: "",
+      durationValue: 0,
+      durationUnit: "Day",
     });
 
     setShowForm(false);
@@ -228,7 +248,7 @@ const Patients = () => {
   const updatePatient = async (e) => {
     e.preventDefault();
 
-    if (!editPatient.name || !editPatient.age || !editPatient.phone) {
+    if (!editPatient.name || !editPatient.age?.value || !editPatient.phone || !editPatient.address) {
       showNotification(
         "Action Required",
         "Please fill all required fields",
@@ -242,12 +262,19 @@ const Patients = () => {
     const payload = {
         full_name: editPatient.name,
         gender: editPatient.gender || 'Male',
-        age: Number(editPatient.age),
+        age: {
+          value: Number(editPatient.age?.value),
+          unit: editPatient.age?.unit || 'Year'
+        },
         phone: editPatient.phone,
-        address: editPatient.address || '',
-        blood_group: editPatient.blood_group || 'O+',
+        address: editPatient.address,
+        blood_group: editPatient.blood_group,
         history: editPatient.status,
         medical_record: editPatient.result,
+        illness_duration: {
+          value: Number(editPatient.duration?.value || 0),
+          unit: editPatient.duration?.unit || 'Day'
+        }
       };
 
       try {
@@ -287,7 +314,7 @@ const Patients = () => {
     } else {
       setRxForm({
         name: p.name,
-        age: p.age,
+        age: p.age?.value !== undefined ? `${p.age.value} ${p.age.unit}` : `${p.age || ''} Year`,
         sex: p.gender || "Female",
         practitioner: "",
         date: new Date().toISOString().split("T")[0],
@@ -443,7 +470,7 @@ const Patients = () => {
               <th className="p-4">Patient ID</th>
               <th>Name</th>
               <th>Age</th>
-              <th>Phone</th>
+               <th>Phone</th>
               <th>Result</th>
               <th>Status</th>
               <th>Prescription</th>
@@ -455,8 +482,8 @@ const Patients = () => {
               <tr key={p.id} className="border-t">
                 <td className="p-4 font-semibold text-blue-600">{p.id}</td>
                 <td>{p.name}</td>
-                <td>{p.age}</td>
-                <td>{p.phone}</td>
+                <td className="font-bold text-slate-700">{p.age?.value} {p.age?.unit}</td>
+                 <td>{p.phone}</td>
                 <td>{shortText(p.result)}</td>
                 <td>
                   <span
@@ -575,20 +602,34 @@ const Patients = () => {
                 placeholder="Full Name *"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full border p-2 rounded"
+                className="w-full border p-2 rounded text-slate-700 font-bold"
                 required
               />
-              <input
-                name="age"
-                type="number"
-                min="0"
-                max="150"
-                placeholder="Age *"
-                value={formData.age}
-                onChange={handleChange}
-                className="w-full border p-2 rounded"
-                required
-              />
+              <div className="flex gap-2">
+                <input
+                  name="ageValue"
+                  type="number"
+                  min="0"
+                  placeholder="Age *"
+                  value={formData.ageValue}
+                  onChange={handleChange}
+                  className="w-1/2 border p-2 rounded text-slate-700 font-bold"
+                  required
+                />
+                <select
+                  name="ageUnit"
+                  value={formData.ageUnit}
+                  onChange={handleChange}
+                  className="w-1/2 border p-2 rounded text-slate-700 font-bold"
+                  required
+                >
+                  <option value="Hour">Hour</option>
+                  <option value="Day">Day</option>
+                  <option value="Week">Week</option>
+                  <option value="Month">Month</option>
+                  <option value="Year">Year</option>
+                </select>
+              </div>
               <select
                 name="gender"
                 value={formData.gender}
@@ -596,10 +637,10 @@ const Patients = () => {
                 className="w-full border p-2 rounded"
                 required
               >
-                <option value="">Select Gender *</option>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
+                <option value="">Select Gender</option>
+                 <option value="Male">Male</option>
+                 <option value="Female">Female</option>
+                {/* <option>Other</option> */}
               </select>
               <input
                 name="phone"
@@ -613,20 +654,23 @@ const Patients = () => {
                 name="blood_group"
                 value={formData.blood_group}
                 onChange={handleChange}
-                className="w-full border p-2 rounded"
-              >
+                className="w-full border p-2 rounded">
+              
                 <option value="">Blood Group</option>
+                <option>N/A</option>
                 <option>A+</option>
                 <option>A-</option>
                 <option>B+</option>
                 <option>B-</option>
                 <option>AB+</option>
                 <option>AB-</option>
-                <option>O+</option>
-                <option>O-</option>
-              </select>
-              <select
-                name="status"
+                 <option>O+</option>
+                 <option>O-</option>
+               </select>
+
+
+               <select
+                 name="status"
                 value={formData.status}
                 onChange={handleChange}
                 className="w-full border p-2 rounded"
@@ -635,9 +679,6 @@ const Patients = () => {
                 <option>In Treatment</option>
                 <option>Discharged</option>
               </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <textarea
                 name="address"
                 placeholder="Address *"
@@ -654,6 +695,7 @@ const Patients = () => {
                 className="w-full border p-2 rounded h-20"
               />
             </div>
+
 
             <button className="bg-blue-600 text-white w-full py-2.5 rounded font-medium mt-2">
               Save Patient
@@ -683,19 +725,37 @@ const Patients = () => {
                 </div>
                 <div className="space-y-1">
                   <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 block">Age</span>
-                  <p className="font-bold">{viewPatient.age} yrs</p>
+                  <p className="font-bold">{viewPatient.age} Years</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 block">Gender</span>
+                  <p className="font-bold">{viewPatient.gender}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 block">Phone</span>
-                  <p className="font-bold">{viewPatient.phone}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 block">Status</span>
-                  <p className="font-bold text-emerald-600 uppercase text-xs">{viewPatient.status}</p>
-                </div>
-              </div>
+                 <div className="space-y-1">
+                   <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 block">Phone</span>
+                   <p className="font-bold">{viewPatient.phone}</p>
+                 </div>
+                 <div className="space-y-1">
+                   <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 block">Duration</span>
+                   <span className="font-extrabold text-[#2563eb] py-1 px-3 bg-blue-50 rounded-lg border border-blue-100 italic">
+                     {viewPatient.duration?.value} {viewPatient.duration?.unit}
+                   </span>
+                 </div>
+                 <div className="space-y-1">
+                   <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 block">Status</span>
+                   <p className="font-bold text-emerald-600 uppercase text-xs">{viewPatient.status}</p>
+                 </div>
+                 <div className="space-y-1">
+                   <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 block">Blood Group</span>
+                   <p className="font-bold text-red-600 uppercase text-xs">{viewPatient.blood_group || "N/A"}</p>
+                 </div>
+               </div>
+               <div className="space-y-1">
+                 <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 block">Address</span>
+                 <p className="font-bold text-slate-700 text-sm whitespace-pre-line">{viewPatient.address || "No address provided."}</p>
+               </div>
               <div className="space-y-1 pt-2">
                 <span className="font-black text-[10px] uppercase tracking-widest text-slate-400 block">Medical History / Results</span>
                 <div className="bg-slate-50 p-4 rounded-2xl text-sm leading-relaxed whitespace-pre-line border border-slate-100 italic">
@@ -719,14 +779,14 @@ const Patients = () => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
           <form
             onSubmit={updatePatient}
-            className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl border border-white/20 animate-in zoom-in-95 duration-200"
+            className="bg-white p-8 rounded-3xl w-full max-w-2xl shadow-2xl border border-white/20 animate-in zoom-in-95 duration-200"
           >
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">EDIT PATIENT</h2>
               <button type="button" onClick={() => setEditPatient(null)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
 
-            <div className="space-y-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
                 <input
@@ -736,28 +796,40 @@ const Patients = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Age</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Age</label>
+                <div className="flex gap-2">
                   <input
                     type="number"
-                    value={editPatient.age || ''}
-                    onChange={(e) => setEditPatient({ ...editPatient, age: e.target.value })}
-                    className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:border-blue-400 outline-none transition-all font-bold"
+                    value={editPatient.age?.value || ''}
+                    onChange={(e) => setEditPatient({ ...editPatient, age: { ...editPatient.age, value: e.target.value } })}
+                    className="w-1/2 border-2 border-slate-100 p-3.5 rounded-2xl focus:border-blue-400 outline-none transition-all font-bold text-slate-700"
                   />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gender</label>
                   <select
-                    value={editPatient.gender || 'Male'}
-                    onChange={(e) => setEditPatient({ ...editPatient, gender: e.target.value })}
-                    className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:border-blue-400 outline-none transition-all bg-white font-bold"
+                    value={editPatient.age?.unit || 'Year'}
+                    onChange={(e) => setEditPatient({ ...editPatient, age: { ...editPatient.age, unit: e.target.value } })}
+                    className="w-1/2 border-2 border-slate-100 p-3.5 rounded-2xl focus:border-blue-400 outline-none transition-all font-bold text-slate-700 bg-white"
                   >
-                    <option>Male</option>
-                    <option>Female</option>
-                    <option>Other</option>
+                    <option value="Hour">Hour</option>
+                    <option value="Day">Day</option>
+                    <option value="Week">Week</option>
+                    <option value="Month">Month</option>
+                    <option value="Year">Year</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gender</label>
+                <select
+                  value={editPatient.gender || 'Male'}
+                  onChange={(e) => setEditPatient({ ...editPatient, gender: e.target.value })}
+                  className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:border-blue-400 outline-none transition-all bg-white font-bold"
+                >
+                  <option>Male</option>
+                  <option>Female</option>
+                  <option>Other</option>
+                </select>
               </div>
 
               <div className="space-y-1">
@@ -768,6 +840,25 @@ const Patients = () => {
                   className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:border-blue-400 outline-none transition-all font-bold"
                 />
               </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Blood Group</label>
+                <select
+                  value={editPatient.blood_group || 'O+'}
+                  onChange={(e) => setEditPatient({ ...editPatient, blood_group: e.target.value })}
+                  className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:border-blue-400 outline-none transition-all bg-white font-bold"
+                >
+                  <option>N/A</option>
+                  <option>A+</option>
+                  <option>A-</option>
+                  <option>B+</option>
+                  <option>B-</option>
+                  <option>AB+</option>
+                  <option>AB-</option>
+                  <option>O+</option>
+                  <option>O-</option>
+                </select>
+               </div>
 
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
@@ -783,16 +874,26 @@ const Patients = () => {
               </div>
 
               <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Address *</label>
+                <textarea
+                  value={editPatient.address || ''}
+                  onChange={(e) => setEditPatient({ ...editPatient, address: e.target.value })}
+                  className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:border-blue-400 outline-none transition-all h-20 text-sm font-medium"
+                  required
+                />
+              </div>
+
+              <div className="col-span-1 md:col-span-2 space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Medical Record</label>
                 <textarea
                   value={editPatient.result || ''}
                   onChange={(e) => setEditPatient({ ...editPatient, result: e.target.value })}
-                  className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:border-blue-400 outline-none transition-all h-24 text-sm font-medium"
+                  className="w-full border-2 border-slate-100 p-3.5 rounded-2xl focus:border-blue-400 outline-none transition-all h-20 text-sm font-medium"
                 />
               </div>
             </div>
 
-            <button className="w-full mt-6 bg-emerald-600 text-white py-4 rounded-2xl font-black text-xs tracking-widest uppercase shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all active:scale-95">
+            <button className="bg-blue-600 text-white w-full py-4 rounded-2xl font-black text-xs tracking-widest uppercase shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 mt-6">
               Update Patient File
             </button>
           </form>
@@ -857,7 +958,7 @@ const Patients = () => {
                     </td>
                     <td className="w-[35%] p-0 bg-white border-r border-b border-slate-300">
                       <input 
-                        className="w-full h-full min-h-[44px] px-3 outline-none text-slate-800 bg-transparent" 
+                        className="w-full h-full min-h-[44px] px-3 outline-none text-slate-800 bg-transparent font-bold" 
                         value={rxForm.age} 
                         readOnly 
                       />
@@ -867,12 +968,12 @@ const Patients = () => {
                     </td>
                     <td className="w-[35%] p-0 bg-white border-b border-slate-300">
                       <select 
-                        className="w-full h-full min-h-[44px] px-3 outline-none text-slate-800 bg-transparent cursor-pointer" 
+                        className="w-full h-full min-h-[44px] px-3 outline-none text-slate-800 bg-transparent cursor-pointer font-bold" 
                         value={rxForm.sex} 
                         onChange={(e) => setRxForm({ ...rxForm, sex: e.target.value })}
                       >
-                        <option>Female</option>
                         <option>Male</option>
+                        <option>Female</option>
                         <option>Other</option>
                       </select>
                     </td>
@@ -928,6 +1029,18 @@ const Patients = () => {
                           placeholder="Medicine..."
                           onChange={(e) => changeRxMedicine(i, "name", e.target.value)}
                         />
+                        {/* Quick Medicine Dropdown */}
+                        <div className="absolute left-0 top-full w-full bg-white border border-slate-200 shadow-xl rounded-lg hidden group-focus-within:block z-[10000] max-h-48 overflow-y-auto">
+                          {oralMedicines.map((m) => (
+                            <div
+                              key={m}
+                              onMouseDown={() => selectRxMedicine(i, m)}
+                              className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-xs font-bold text-slate-700 uppercase tracking-widest border-b border-slate-50 last:border-0"
+                            >
+                              {m}
+                            </div>
+                          ))}
+                        </div>
                       </td>
                       <td className="border-r border-slate-300 p-0 align-middle">
                         <input
@@ -979,7 +1092,7 @@ const Patients = () => {
               </button>
 
               <button
-                onClick={savePrescription}
+                onClick={finalizePrescription}
                 className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded font-black uppercase text-xs tracking-widest transition-colors shadow-sm"
               >
                 Save Prescription
@@ -1027,7 +1140,7 @@ const Patients = () => {
               <div className="border-l-4 border-blue-600 pl-4">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Patient Identification</p>
                 <h2 className="text-3xl font-black text-slate-900 uppercase pt-1">{rxForm.name}</h2>
-                <p className="font-bold text-slate-500">{rxForm.age} years • {rxForm.sex}</p>
+                <p className="font-bold text-slate-500">{rxForm.sex}</p>
               </div>
             </div>
             <div className="space-y-4">

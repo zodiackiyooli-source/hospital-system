@@ -172,7 +172,7 @@ const Dashboard = () => {
           </div>
           
           <div className="h-[300px] min-h-[300px] w-full">
-            <ResponsiveContainer width="99%" minWidth={1} height="100%">
+            <ResponsiveContainer width="99%" minWidth={1} minHeight={1} height="100%">
               <AreaChart data={expenseRevenue} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
@@ -206,7 +206,7 @@ const Dashboard = () => {
           </div>
           
           <div className="h-[250px] w-full flex-1 flex items-center justify-center relative">
-             <ResponsiveContainer width="99%" minWidth={1} height="100%">
+             <ResponsiveContainer width="99%" minWidth={1} minHeight={1} height="100%">
               <PieChart>
                 <Pie
                   data={patientData}
