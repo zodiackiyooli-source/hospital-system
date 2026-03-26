@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Users, Stethoscope, Pill, PackageX, TrendingUp, Activity, Plus, FileText, ChevronRight, Clock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Users, Stethoscope, Pill, PackageX, TrendingUp, Activity, Plus, FileText, ChevronRight, Clock, CalendarCheck } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -20,12 +21,14 @@ const COLORS = ["#3b82f6", "#ec4899", "#f59e0b", "#10b981"];
 
 const Dashboard = () => {
   const { authFetch, user } = useAuth();
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState("");
 
   const [stats, setStats] = useState({
     totalMedicines: 0,
     totalPatients: 0,
     totalDoctors: 0,
+    totalAppointments: 0,
     stockAlerts: 0,
     patientData: [
       { name: "Male", value: 0 },
@@ -45,7 +48,13 @@ const Dashboard = () => {
         const text = await res.text();
         const json = text ? JSON.parse(text) : {};
         if (res.ok && json.data) {
-          setStats(json.data);
+          setStats(prev => ({ ...prev, ...json.data }));
+        }
+        // Also fetch total appointments
+        const apptRes = await authFetch("/appointments");
+        if (apptRes.ok) {
+          const apptData = await apptRes.json();
+          setStats(prev => ({ ...prev, totalAppointments: apptData.data?.appointments?.length || 0 }));
         }
       } catch (err) {
         console.error("Dashboard Load Error:", err);
@@ -70,6 +79,7 @@ const Dashboard = () => {
       border: "border-blue-100",
       trend: "+12.5%",
       trendColor: "text-emerald-500",
+      link: '/patients',
     },
     {
       title: "Medical Staff",
@@ -79,6 +89,17 @@ const Dashboard = () => {
       border: "border-emerald-100",
       trend: "+2.4%",
       trendColor: "text-emerald-500",
+      link: '/doctors',
+    },
+    {
+      title: "Appointments",
+      value: stats.totalAppointments,
+      icon: <CalendarCheck size={24} className="text-purple-600" />,
+      bg: "bg-purple-50",
+      border: "border-purple-100",
+      trend: "Today",
+      trendColor: "text-purple-500",
+      link: '/appointments',
     },
     {
       title: "Medicines Base",
@@ -121,10 +142,10 @@ const Dashboard = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-all">
-            <FileText size={16} /> Generate Report
+          <button onClick={() => navigate('/reports')} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50 transition-all">
+            <FileText size={16} /> Reports
           </button>
-          <button className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all">
+          <button onClick={() => navigate('/patients')} className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 hover:shadow-lg transition-all">
             <Plus size={18} strokeWidth={3} /> New Patient
           </button>
         </div>
@@ -135,7 +156,8 @@ const Dashboard = () => {
         {cards.map((card, i) => (
           <div
             key={i}
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:-translate-y-1 transition-all duration-300"
+            onClick={() => card.link && navigate(card.link)}
+            className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:-translate-y-1 transition-all duration-300 ${card.link ? 'cursor-pointer' : ''}`}
           >
             <div className="flex justify-between items-start">
               <div className={`p-3 rounded-xl ${card.bg} ${card.border} border`}>

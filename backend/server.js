@@ -85,6 +85,8 @@ app.use('/api/debts', protect, adminRole, require('./routes/debtRoutes'));
 app.use('/api/dashboard', protect, adminRole, require('./routes/dashboardRoutes'));
 app.use('/api/prescriptions', protect, adminRole, require('./routes/prescriptionRoutes'));
 app.use('/api/reports', protect, adminRole, require('./routes/reportRoutes'));
+app.use('/api/appointments', protect, adminRole, require('./routes/appointmentRoutes'));
+app.use('/api/billing', protect, adminRole, require('./routes/billingRoutes'));
 
 // Health check
 app.get('/', (req, res) => {

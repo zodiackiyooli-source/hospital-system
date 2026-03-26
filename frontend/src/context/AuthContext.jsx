@@ -1,20 +1,26 @@
-import React, { createContext, useContext, useState } from 'react';
+import React from 'react';
+import { createContext, useContext, useState } from 'react';
 
-// ─── API Base URL (Vite proxy u gudbiyaa backend port 5000) ───────────────────
 const API = import.meta.env.VITE_API_URL || '/api';
 
 const AuthContext = createContext(null);
 
-// ─── Helper: localStorage session ────────────────────────────────────────────
 const LS_KEY = 'hms_session';
 const readSession = () => JSON.parse(localStorage.getItem(LS_KEY) || 'null');
 const saveSession = (data) => localStorage.setItem(LS_KEY, JSON.stringify(data));
 const clearSession = () => localStorage.removeItem(LS_KEY);
 
+// Normalize role to Title case for UI matching
+const normalizeRoleForUI = (role) => {
+    if (!role) return 'Worker';
+    const map = { owner: 'Owner', admin: 'Admin', worker: 'Worker' };
+    return map[role.toLowerCase()] || role;
+};
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => readSession());
 
-    // ── SIGN UP (backend) ─────────────────────────────────────────────────────
+    // ── SIGN UP ──────────────────────────────────────────────────────────────
     const signUp = async ({ name, email, password, role }) => {
         try {
             const res = await fetch(`${API}/auth/register`, {
@@ -26,15 +32,14 @@ export const AuthProvider = ({ children }) => {
             const data = await res.json();
 
             if (!res.ok) {
-                return { success: false, message: data.message || 'Diiwaan galinta waa ku guuldareysatay.' };
+                return { success: false, message: data.message || 'Registration failed. Please try again.' };
             }
 
-            // Auto login
             const session = {
                 id: data._id,
                 name: data.name,
                 email: data.email,
-                role: data.role,
+                role: normalizeRoleForUI(data.role),
                 token: data.token,
                 joinedAt: data.joinedAt
             };
@@ -44,11 +49,11 @@ export const AuthProvider = ({ children }) => {
 
         } catch (err) {
             console.error('SignUp error:', err);
-            return { success: false, message: 'Server-ka la xiriiri kari waydey. Backend-ka hubi.' };
+            return { success: false, message: 'Cannot reach server. Please check backend is running on port 5000.' };
         }
     };
 
-    // ── LOGIN (backend) ───────────────────────────────────────────────────────
+    // ── LOGIN ─────────────────────────────────────────────────────────────────
     const login = async ({ email, password }) => {
         try {
             const res = await fetch(`${API}/auth/login`, {
@@ -60,14 +65,14 @@ export const AuthProvider = ({ children }) => {
             const data = await res.json();
 
             if (!res.ok) {
-                return { success: false, message: data.message || 'Login waa ku guuldareysatay.' };
+                return { success: false, message: data.message || 'Login failed. Please check your credentials.' };
             }
 
             const session = {
                 id: data._id,
                 name: data.name,
                 email: data.email,
-                role: data.role,
+                role: normalizeRoleForUI(data.role),
                 token: data.token,
                 joinedAt: data.joinedAt
             };
@@ -77,7 +82,7 @@ export const AuthProvider = ({ children }) => {
 
         } catch (err) {
             console.error('Login error:', err);
-            return { success: false, message: 'Server-ka la xiriiri kari waydey. Backend hubi (port 5000).' };
+            return { success: false, message: 'Cannot reach server. Backend must be running on port 5000.' };
         }
     };
 
@@ -87,7 +92,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
-    // ── Helper: API calls with auth token ─────────────────────────────────────
+    // ── Auth Fetch ────────────────────────────────────────────────────────────
     const authFetch = (url, options = {}) => {
         return fetch(`${API}${url}`, {
             ...options,
@@ -106,5 +111,4 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-// Hook fudud
 export const useAuth = () => useContext(AuthContext);

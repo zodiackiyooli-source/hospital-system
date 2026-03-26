@@ -1,52 +1,55 @@
 const express = require('express');
 const router = express.Router();
 const { successResponse } = require('../utils/response');
-const PharmacySales = require('../models/PharmacySales');
-const LabTest = require('../models/LabTest');
+const Billing = require('../models/Billing');
 
 // ── GET /api/reports/summary ─────────────────────────────────────────────
 router.get('/summary', async (req, res, next) => {
     try {
-        // Fetch Pharmacy Revenue
-        const pharmaAggregate = await PharmacySales.aggregate([
-            { $group: { _id: null, total: { $sum: '$total' } } }
+        // Aggregate all Paid invoices
+        const revenueAggregate = await Billing.aggregate([
+            { $match: { paymentStatus: 'Paid' } },
+            { $group: { _id: null, total: { $sum: '$totalCost' } } }
         ]);
-        const pharmaRevenue = pharmaAggregate[0]?.total || 0;
+        const totalRevenue = revenueAggregate[0]?.total || 0;
 
-        // Fetch Lab Revenue
-        const labAggregate = await LabTest.aggregate([
-            { $group: { _id: null, total: { $sum: '$price' } } }
+        // Fetch recent paid invoices for the transaction list
+        const recentInvoices = await Billing.find({ paymentStatus: 'Paid' })
+            .sort({ date: -1 })
+            .limit(20)
+            .populate('patient_id', 'full_name');
+
+        const transactions = recentInvoices.map(inv => ({
+            id: inv.invoice_number,
+            description: `Hospital Invoice for ${inv.patient_id?.full_name || 'Patient'}`,
+            category: 'General Billing',
+            date: inv.date,
+            amount: inv.totalCost
+        }));
+
+        // Group revenue by Item Types across all Paid Billings (assuming items exist)
+        const typeAggregate = await Billing.aggregate([
+            { $match: { paymentStatus: 'Paid' } },
+            { $unwind: "$items" },
+            { $group: { _id: "$items.type", total: { $sum: "$items.cost" } } }
         ]);
-        const labRevenue = labAggregate[0]?.total || 0;
 
-        // General list of transactions spanning Pharmacy & Labs
-        const recentPharma = await PharmacySales.find().sort({ date: -1 }).limit(10).populate('medicine_id', 'name');
-        const recentLabs = await LabTest.find().sort({ createdAt: -1 }).limit(10).populate('patient_id', 'full_name');
+        let pharmaRevenue = 0;
+        let labRevenue = 0;
+        let consultationRevenue = 0;
 
-        const transactions = [
-            ...recentPharma.map(p => ({
-                id: `REP-PH-${p._id.toString().substring(0, 4).toUpperCase()}`,
-                description: `Pharma Sales (${p.medicine_id?.name || 'Unknown'})`,
-                category: 'Pharmacy',
-                date: p.date,
-                amount: p.total
-            })),
-            ...recentLabs.map(l => ({
-                id: `REP-LB-${l._id.toString().substring(0, 4).toUpperCase()}`,
-                description: `Laboratory Test (${l.test_name})`,
-                category: 'Laboratory',
-                date: l.createdAt,
-                amount: l.price
-            }))
-        ]
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 20);
+        typeAggregate.forEach(item => {
+            if (item._id === 'Medicine') pharmaRevenue = item.total;
+            if (item._id === 'Test') labRevenue = item.total;
+            if (item._id === 'Consultation') consultationRevenue = item.total;
+        });
 
         successResponse(res, 200, {
             summary: {
-                totalRevenue: pharmaRevenue + labRevenue,
+                totalRevenue,
                 pharmaRevenue,
                 labRevenue,
+                consultationRevenue
             },
             transactions
         });

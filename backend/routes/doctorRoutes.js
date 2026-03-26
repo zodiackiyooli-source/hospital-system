@@ -34,4 +34,26 @@ router.get('/:id', async (req, res, next) => {
     }
 });
 
+// ── PUT /api/doctors/:id ─────────────────────────────────────────────────────
+router.put('/:id', async (req, res, next) => {
+    try {
+        const doctor = await Doctor.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+        if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+        successResponse(res, 200, { doctor }, 'Doctor updated successfully');
+    } catch (err) {
+        next(err);
+    }
+});
+
+// ── DELETE /api/doctors/:id ───────────────────────────────────────────────────
+router.delete('/:id', async (req, res, next) => {
+    try {
+        const doctor = await Doctor.findByIdAndDelete(req.params.id);
+        if (!doctor) return res.status(404).json({ message: 'Doctor not found' });
+        successResponse(res, 200, {}, 'Doctor deleted successfully');
+    } catch (err) {
+        next(err);
+    }
+});
+
 module.exports = router;

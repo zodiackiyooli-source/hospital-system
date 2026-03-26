@@ -1,5 +1,6 @@
 import { Bell, Search, UserCircle, LogOut, Crown, Shield, Stethoscope, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 // Role badge config
 const ROLE_CONFIG = {
@@ -10,8 +11,11 @@ const ROLE_CONFIG = {
 
 const Navbar = ({ onToggleSidebar }) => {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const role = ROLE_CONFIG[user?.role] || ROLE_CONFIG['Worker'];
     const RoleIcon = role.icon;
+
+    const handleLogout = () => { logout(); navigate('/login'); };
 
     // Initials from name
     const initials = user?.name
@@ -80,10 +84,10 @@ const Navbar = ({ onToggleSidebar }) => {
                                 <p className="text-[11px] text-slate-400 truncate">{user?.email}</p>
                             </div>
                             <button
-                                onClick={logout}
+                                onClick={handleLogout}
                                 className="w-full flex items-center gap-2 px-3 py-2.5 text-red-500 hover:bg-red-50 text-sm font-semibold transition-colors"
                             >
-                                <LogOut size={15} /> Log Out
+                                <LogOut size={15} /> Sign Out
                             </button>
                         </div>
                     </div>

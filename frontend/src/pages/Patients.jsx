@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Search, User, Phone, Calendar, Info, Edit, Trash2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import PatientTimeline from "../components/PatientTimeline";
 
 const API_BASE = "/api";
 
@@ -17,11 +19,13 @@ const safeJson = async (res) => {
 };
 
 const Patients = () => {
+  const { authFetch } = useAuth();
   const [patients, setPatients] = useState([]);
 
   const [showForm, setShowForm] = useState(false);
   const [viewPatient, setViewPatient] = useState(null);
   const [editPatient, setEditPatient] = useState(null);
+  const [showTimeline, setShowTimeline] = useState(false);
 
   const [search, setSearch] = useState("");
 
@@ -74,7 +78,7 @@ const Patients = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const res = await fetch(`${API_BASE}/patients?limit=100`);
+        const res = await authFetch("/patients?limit=100");
         const data = await safeJson(res);
 
         if (!res.ok) {
@@ -82,7 +86,7 @@ const Patients = () => {
         }
 
         // Fetch prescriptions as well
-        const rxRes = await fetch(`${API_BASE}/prescriptions`);
+        const rxRes = await authFetch("/prescriptions");
         const rxData = await safeJson(rxRes);
         const allRxs = rxData?.data || [];
 
@@ -161,7 +165,7 @@ const Patients = () => {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/patients`, {
+      const res = await authFetch("/patients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -222,7 +226,7 @@ const Patients = () => {
 
     if (target.dbId) {
       try {
-        const res = await fetch(`${API_BASE}/patients/${target.dbId}`, {
+        const res = await authFetch(`/patients/${target.dbId}`, {
           method: "DELETE",
         });
         const data = await safeJson(res);
@@ -278,7 +282,7 @@ const Patients = () => {
       };
 
       try {
-        const res = await fetch(`${API_BASE}/patients/${editPatient.dbId}`, {
+        const res = await authFetch(`/patients/${editPatient.dbId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -375,12 +379,12 @@ const Patients = () => {
 
     try {
       const url = isUpdate 
-        ? `${API_BASE}/prescriptions/${targetPatient.prescription._id}`
-        : `${API_BASE}/prescriptions`;
+        ? `/prescriptions/${targetPatient.prescription._id}`
+        : `/prescriptions`;
       
       const method = isUpdate ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -764,14 +768,31 @@ const Patients = () => {
               </div>
             </div>
 
-            <button
-              onClick={() => setViewPatient(null)}
-              className="w-full mt-8 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs tracking-widest uppercase shadow-lg shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95"
-            >
-              Close Information
-            </button>
+            <div className="flex flex-col gap-2 mt-8">
+              <button
+                onClick={() => setShowTimeline(true)}
+                className="w-full bg-blue-50 text-blue-700 py-3 rounded-2xl font-black text-xs tracking-widest uppercase shadow-sm hover:bg-blue-100 transition-all active:scale-95 flex justify-center items-center gap-2"
+              >
+                <span>👁️</span> View Complete Medical History
+              </button>
+              
+              <button
+                onClick={() => setViewPatient(null)}
+                className="w-full bg-slate-900 text-white py-3 rounded-2xl font-black text-xs tracking-widest uppercase shadow-lg shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95"
+              >
+                Close Information
+              </button>
+            </div>
           </div>
         </div>
+      )}
+
+      {/* TIMELINE VIEW (MODAL) */}
+      {showTimeline && viewPatient && (
+          <PatientTimeline 
+              patient={viewPatient} 
+              onClose={() => setShowTimeline(false)} 
+          />
       )}
 
       {/* EDIT */}

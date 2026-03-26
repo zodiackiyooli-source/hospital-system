@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Stethoscope, Plus } from "lucide-react";
+import { Stethoscope, Plus, Search } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const Doctors = () => {
     const [doctors, setDoctors] = useState([]);
     const [showModal, setShowModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
     const { authFetch } = useAuth();
 
     const [form, setForm] = useState({
         name: "",
         specialization: "",
+        department: "",
         phone: "",
         email: "",
         schedule: "",
@@ -54,6 +56,7 @@ const Doctors = () => {
                 setForm({
                     name: "",
                     specialization: "",
+                    department: "",
                     phone: "",
                     email: "",
                     schedule: "",
@@ -76,6 +79,18 @@ const Doctors = () => {
                     </h1>
                     <p className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-widest leading-none">Doctors & Specialists Management</p>
                 </div>
+                
+                <div className="relative w-full sm:w-auto md:w-80 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
+                    <input 
+                        type="text" 
+                        placeholder="Search by name, dept, spec..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white border border-slate-200 py-3 pl-11 pr-4 rounded-xl outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-bold text-xs shadow-sm"
+                    />
+                </div>
+
                 <button
                     onClick={() => setShowModal(true)}
                     className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-100 hover:bg-blue-700 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -88,17 +103,27 @@ const Doctors = () => {
                 <table className="w-full text-left text-sm min-w-[1000px] md:min-w-full">
                     <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-200">
                         <tr>
-                            <th className="py-4 px-6">Name</th>
-                            <th className="py-4 px-6 md:text-center">Field / Specialization</th>
-                            <th className="py-4 px-6 md:text-center">Phone</th>
+                            <th className="py-4 px-6 md:w-1/4">Name</th>
+                            <th className="py-4 px-6 md:text-center md:w-1/4">Field / Specialization</th>
+                            <th className="py-4 px-6 md:text-center">Department</th>
+                            <th className="py-4 px-6 md:text-center md:w-1/5">Phone</th>
                             <th className="py-4 px-6 md:text-right">Email</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 italic uppercase">
-                        {doctors.map((doc) => (
+                        {doctors.filter(d => 
+                            (d.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            (d.specialization || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            (d.department || '').toLowerCase().includes(searchQuery.toLowerCase())
+                        ).map((doc) => (
                             <tr key={doc._id} className="hover:bg-slate-50 transition-colors">
                                 <td className="py-4 px-6 font-bold text-slate-800 tracking-tight">{doc.name}</td>
                                 <td className="py-4 px-6 md:text-center font-medium text-slate-500">{doc.specialization}</td>
+                                <td className="py-4 px-6 md:text-center">
+                                    <span className="bg-amber-50 text-amber-700 px-2.5 py-1 rounded-md text-[10px] font-black tracking-widest border border-amber-200/50">
+                                        {doc.department || 'N/A'}
+                                    </span>
+                                </td>
                                 <td className="py-4 px-6 md:text-center font-bold text-blue-600 tracking-tighter">{doc.phone}</td>
                                 <td className="py-4 px-6 md:text-right font-medium text-slate-600 lowercase underline underline-offset-4 decoration-slate-200">{doc.email}</td>
                             </tr>
@@ -114,6 +139,7 @@ const Doctors = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <input name="name" onChange={handleChange} placeholder="FULL NAME" className="border border-slate-200 p-4 w-full rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold text-xs" />
                             <input name="specialization" onChange={handleChange} placeholder="SPECIALIZATION" className="border border-slate-200 p-4 w-full rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold text-xs" />
+                            <input name="department" onChange={handleChange} placeholder="DEPARTMENT (e.g. Cardiology)" className="border border-slate-200 p-4 w-full rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold text-xs md:col-span-2 bg-slate-50 hover:bg-white transition-colors" />
                             <input name="phone" onChange={handleChange} placeholder="PHONE NUMBER" className="border border-slate-200 p-4 w-full rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold text-xs" />
                             <input name="email" onChange={handleChange} placeholder="EMAIL ADDRESS" className="border border-slate-200 p-4 w-full rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold text-xs" />
                             <input name="schedule" onChange={handleChange} placeholder="SCHEDULE" className="border border-slate-200 p-4 w-full rounded-xl outline-none focus:ring-4 focus:ring-blue-100 font-bold text-xs" />
